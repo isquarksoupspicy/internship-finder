@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Internship Finder</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, Arial, sans-serif; background: #f4f5f9; margin: 0; padding: 24px 16px; color: #222; }
+    .wrap { max-width: 860px; margin: auto; }
+    h1 { margin: 0 0 4px; }
+    .sub { color: #666; margin: 0 0 20px; }
+    .box { background: white; border-radius: 10px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .row > input, .row > select { flex: 1; min-width: 150px; }
+    input, select, button { padding: 10px; font-size: 14px; border: 1px solid #d5d8e0; border-radius: 6px; background: white; }
+    button { background: #4f46e5; color: white; border: none; cursor: pointer; }
+    button.light { background: white; color: #333; border: 1px solid #d5d8e0; }
+    h3 { margin: 0 0 8px; }
+    .chip { display: inline-block; background: #eef0ff; color: #3b36b0; border-radius: 999px; padding: 3px 10px; font-size: 12px; margin: 2px 2px 2px 0; }
+    .pick { display: inline-block; border: 1px solid #d5d8e0; border-radius: 999px; padding: 5px 12px; margin: 3px 4px 3px 0; font-size: 13px; cursor: pointer; }
+    .pick input { padding: 0; margin-right: 4px; }
+    .meta { color: #666; font-size: 13px; margin: 4px 0 10px; }
+    .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .tag { color: white; font-weight: bold; font-size: 13px; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+    .Eligible { background: #16a34a; }
+    .Partial { background: #d97706; }
+    .Unlikely { background: #dc2626; }
+    .small { color: #666; font-size: 13px; margin-top: 6px; }
+    .pay { font-size: 13px; margin-top: 8px; font-weight: bold; }
+    a.apply { display: inline-block; margin-top: 10px; color: #4f46e5; font-weight: bold; text-decoration: none; }
+    label { font-size: 14px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎓 Internship Finder</h1>
+  <p class="sub">Internships you can actually apply to, matched to your resume.</p>
+
+  <div class="box">
+    <h3>1. Your resume</h3>
+    <div class="row">
+      <input type="file" id="file" accept=".pdf,.docx,.txt">
+      <button onclick="uploadResume()" style="flex:0">Upload</button>
+    </div>
+    <div id="profile" class="small"></div>
+  </div>
+
+  <div class="box">
+    <h3>2. Where can you apply from?</h3>
+    <div id="countries"></div>
+    <div class="small">Remote jobs open to people worldwide are always included.</div>
+  </div>
+
+  <div class="box">
+    <h3>3. Fields you like</h3>
+    <div id="types"></div>
+    <div class="small">Leave all unticked to see every field.</div>
+  </div>
+
+  <div class="box">
+    <h3>4. Filters</h3>
+    <div class="row">
+      <input id="q" placeholder="Keyword (e.g. python, genomics)">
+      <input id="city" placeholder="City (e.g. Chennai)">
+      <select id="mode">
+        <option value="">Online / Hybrid / Offline</option>
+        <option>Online</option><option>Hybrid</option><option>Offline</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label><input type="checkbox" id="paid"> 💰 Only with stipend / pay info</label>
+      <label><input type="checkbox" id="hide"> Hide ones I'm unlikely to qualify for</label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button onclick="search()" style="flex:0">Search</button>
+      <button class="light" onclick="refreshData()" style="flex:0; white-space:nowrap">Fetch latest listings</button>
+    </div>
+    <div id="status" class="small"></div>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script>
+  let prefs = JSON.parse(localStorage.getItem("prefs") || "null") ||
+              { countries: ["India"], types: [], paid: false, hide: true };
+
+  function esc(text) {
+    const div = document.createElement("div");
+    div.textContent = text == null ? "" : text;
+    return div.innerHTML;
+  }
+  function checked(id) {
+    return [...document.querySelectorAll("#" + id + " input:checked")].map(i => i.value);
+  }
+  function savePrefs() {
+    prefs = { countries: checked("countries"), types: checked("types"),
+              paid: document.getElementById("paid").checked,
+              hide: document.getElementById("hide").checked };
+    localStorage.setItem("prefs", JSON.stringify(prefs));
+  }
+  function showProfile(p) {
+    const box = document.getElementById("profile");
+    if (!p.skills || p.skills.length === 0) {
+      box.innerHTML = "No resume yet. Upload one to see which internships fit you.";
+      return;
+    }
+    box.innerHTML = "<b>Level:</b> " + esc(p.level || "not detected") + "<br><b>Skills found:</b><br>" +
+      p.skills.map(s => '<span class="chip">' + esc(s) + "</span>").join("");
+  }
+  async function loadProfile() {
+    showProfile(await (await fetch("/api/profile")).json());
+  }
+  async function uploadResume() {
+    const file = document.getElementById("file").files[0];
+    if (!file) { alert("Choose your resume file first"); return; }
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/resume", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok) { alert(data.detail || "Upload failed"); return; }
+    showProfile(data);
+    search();
+  }
+  async function loadFilters() {
+    const data = await (await fetch("/api/facets")).json();
+    const countries = data.countries.filter(c => !["Unknown", "Worldwide", "Europe"].includes(c));
+    document.getElementById("countries").innerHTML = countries.map(c =>
+      `<label class="pick"><input type="checkbox" value="${esc(c)}" ${prefs.countries.includes(c) ? "checked" : ""}>${esc(c)}</label>`).join("");
+    document.getElementById("types").innerHTML = data.types.map(t =>
+      `<label class="pick"><input type="checkbox" value="${esc(t)}" ${prefs.types.includes(t) ? "checked" : ""}>${esc(t)}</label>`).join("");
+    document.getElementById("paid").checked = prefs.paid;
+    document.getElementById("hide").checked = prefs.hide;
+  }
+  function payLine(job) {
+    if (job.pay === "listed") return "💰 " + esc(job.pay_text);
+    if (job.pay === "mentioned") return "💰 Pay mentioned in the description";
+    if (job.pay === "unpaid") return "Unpaid";
+    return "Pay not stated";
+  }
+  async function search() {
+    savePrefs();
+    const params = new URLSearchParams({
+      q: document.getElementById("q").value,
+      city: document.getElementById("city").value,
+      mode: document.getElementById("mode").value,
+      can_work_in: prefs.countries.join(","),
+      types: prefs.types.join(","),
+      paid_only: prefs.paid,
+      hide_unlikely: prefs.hide,
+    });
+    const data = await (await fetch("/api/internships?" + params)).json();
+    document.getElementById("status").textContent = data.count + " internships found";
+
+    let html = "";
+    if (data.count === 0) {
+      html = '<div class="box">Nothing matches right now. Try unticking some filters, or click <b>Fetch latest listings</b> to load more internships.</div>';
+    }
+    for (const job of data.results) {
+      const place = [job.city, job.country].filter(x => x && x !== "Unknown").join(", ");
+      html += `
+        <div class="box">
+          <div class="top">
+            <div>
+              <h3>${esc(job.title)}</h3>
+              <div class="meta">${esc(job.company)} · ${esc(place || "Location not listed")} · <b>${esc(job.mode)}</b> · ${esc(job.type)}</div>
+            </div>
+            <span class="tag ${job.status}">${job.status} · ${job.match}%</span>
+          </div>
+          <div>${esc(job.description.slice(0, 220))}...</div>
+          <div class="pay">${payLine(job)}</div>
+          <div class="small">${job.matched.map(s => '<span class="chip">✓ ' + esc(s) + "</span>").join("")}</div>
+          ${job.missing.length ? '<div class="small">Skills to build: ' + job.missing.map(esc).join(", ") + "</div>" : ""}
+          ${job.note ? '<div class="small" style="color:#dc2626">⚠ ' + esc(job.note) + "</div>" : ""}
+          <a class="apply" href="${esc(job.url)}" target="_blank" rel="noopener">Apply →</a>
+        </div>`;
+    }
+    document.getElementById("results").innerHTML = html;
+  }
+  async function refreshData() {
+    document.getElementById("status").textContent = "Fetching latest listings, this takes about a minute...";
+    const data = await (await fetch("/api/refresh", { method: "POST" })).json();
+    await loadFilters();
+    await search();
+    document.getElementById("status").textContent += " (fetched " + data.saved + " listings)";
+  }
+  loadProfile();
+  loadFilters().then(search);
+</script>
+</body>
+</html>

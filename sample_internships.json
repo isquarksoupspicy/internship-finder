@@ -1,0 +1,6 @@
+[
+{"title":"Data Science Intern","company":"Sample Co","country":"India","city":"Chennai","mode":"Hybrid","type":"Data / AI","description":"Work with Python, pandas and machine learning on real datasets. Stipend provided.","url":"https://example.com/1","source":"Sample","global_remote":false,"pay":"mentioned","pay_text":"Pay mentioned in the description"},
+{"title":"Bioinformatics Research Intern","company":"Sample Labs","country":"India","city":"Bengaluru","mode":"Offline","type":"Biotech / Research","description":"Genomics and computational biology research using Python and biopython.","url":"https://example.com/2","source":"Sample","global_remote":false,"pay":"unknown","pay_text":""},
+{"title":"Python Developer Intern (Remote)","company":"Sample Remote","country":"Worldwide","city":"","mode":"Online","type":"Software / Engineering","description":"Remote internship open worldwide. Python, git and github.","url":"https://example.com/3","source":"Sample","global_remote":true,"pay":"listed","pay_text":"$500 per month"},
+{"title":"Marketing Intern","company":"Sample Brand","country":"United Kingdom","city":"London","mode":"Offline","type":"Marketing / PR / Content","description":"Social media and content writing.","url":"https://example.com/4","source":"Sample","global_remote":false,"pay":"unknown","pay_text":""}
+]

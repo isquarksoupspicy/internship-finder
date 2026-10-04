@@ -1,0 +1,7 @@
+venv/
+.env
+internships.json
+profile.json
+__pycache__/
+*.pyc
+temp_*
