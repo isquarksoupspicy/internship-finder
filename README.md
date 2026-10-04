@@ -10,7 +10,7 @@ You upload your resume, choose what you're interested in and where you can apply
 
 ### 🌐 Try it out
 
-**[→ Open Internship Finder](YOUR-RENDER-URL-HERE)**
+**[→ Open Internship Finder](https://internship-finder-uqa4.onrender.com)**
 
 ---
 
